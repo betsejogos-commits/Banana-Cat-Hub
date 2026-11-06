@@ -1,0 +1,198 @@
+-- ======================================================================================
+-- 1. [SISTEMA DE SEGURANÇA ATIVO AVANÇADO & SPOOF DE QUEDA DE INTERNET]
+-- ======================================================================================
+if getgenv().__BF_LOADED then return getgenv().__BF_RESULT end
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local NetworkClient = game:GetService("NetworkClient")
+local GuiService = game:GetService("GuiService")
+
+-- Função que simula perfeitamente a queda de internet (Error Code: 277) antes de sair
+local function ExecutarInternetSpoof()
+    pcall(function()
+        settings().Network.IncomingReplicationLag = 999999
+        NetworkClient:SetServerSimulationRadius(0)
+        GuiService:SetErrorMessageChangedPrompt("Por favor, verifique sua conexão com a internet e tente novamente.\n(Error Code: 277)", 277, Enum.ConnectionError.DisconnectErrors)
+        task.wait(0.1)
+        LocalPlayer:Destroy() 
+    end)
+end
+
+-- Interceptador Metatable para capturar métodos nativos de Kick e Ban antes de executarem
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+local oldIndex = mt.__index
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "FireServer" and (string.find(string.lower(self.Name), "cheat") or string.find(string.lower(self.Name), "detect") or self.Name == "Admin" or self.Name == "Report") then
+        return nil
+    end
+    return oldNamecall(self, ...)
+end)
+
+mt.__index = newcclosure(function(self, key)
+    if self == LocalPlayer and (string.lower(key) == "kick" or string.lower(key) == "ban") then
+        ExecutarInternetSpoof()
+        return newcclosure(function() end)
+    end
+    return oldIndex(self, key)
+end)
+setreadonly(mt, true)
+
+game:GetService("CoreGui").ChildAdded:Connect(function(child)
+    if string.find(string.lower(child.Name), "prompt") or string.find(string.lower(child.Name), "kick") or string.find(string.lower(child.Name), "ban") then
+        ExecutarInternetSpoof()
+    end
+end)
+
+-- ======================================================================================
+-- 2. [TELA DE CARREGAMENTO ESTILIZADA CARD (0% ATÉ 100%)]
+-- ======================================================================================
+local CoreGui = game:GetService("CoreGui")
+if CoreGui:FindFirstChild("BananaCatLoadingScreen") then CoreGui.BananaCatLoadingScreen:Destroy() end
+
+local loadingGui = Instance.new("ScreenGui", CoreGui)
+loadingGui.Name = "BananaCatLoadingScreen"
+loadingGui.IgnoreGuiInset = true
+loadingGui.DisplayOrder = 99999
+
+local mainBackground = Instance.new("Frame", loadingGui)
+mainBackground.Size = UDim2.new(1, 0, 1, 0)
+mainBackground.BackgroundTransparency = 1
+
+local centerFrame = Instance.new("Frame", mainBackground)
+centerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+centerFrame.Position = UDim2.new(0.5, 0, 0.5, -20)
+centerFrame.Size = UDim2.new(0, 420, 0, 130)
+centerFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 28)
+centerFrame.BackgroundTransparency = 0.15
+centerFrame.BorderSizePixel = 0
+Instance.new("UICorner", centerFrame).CornerRadius = UDim.new(0, 14)
+
+local gameLabel = Instance.new("TextLabel", centerFrame)
+gameLabel.Size = UDim2.new(0, 150, 0, 20)
+gameLabel.Position = UDim2.new(0, 20, 0, 15)
+gameLabel.BackgroundTransparency = 1
+gameLabel.Font = Enum.Font.GothamMedium
+gameLabel.Text = "Blox Fruits •"
+gameLabel.TextColor3 = Color3.fromRGB(80, 120, 255)
+gameLabel.TextSize = 13
+gameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local premiumLabel = Instance.new("TextLabel", centerFrame)
+premiumLabel.Size = UDim2.new(0, 150, 0, 20)
+premiumLabel.Position = UDim2.new(1, -170, 0, 15)
+premiumLabel.BackgroundTransparency = 1
+premiumLabel.Font = Enum.Font.GothamMedium
+premiumLabel.Text = "PREMIUM LOADER"
+premiumLabel.TextColor3 = Color3.fromRGB(120, 180, 120)
+premiumLabel.TextSize = 12
+premiumLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+local hubTitleLabel = Instance.new("TextLabel", centerFrame)
+hubTitleLabel.Size = UDim2.new(1, 0, 0, 15)
+hubTitleLabel.Position = UDim2.new(0, 0, 0, 42)
+hubTitleLabel.BackgroundTransparency = 1
+hubTitleLabel.Font = Enum.Font.GothamMedium
+hubTitleLabel.Text = "Loader Banana hub"
+hubTitleLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
+hubTitleLabel.TextSize = 12
+
+local percentageLabel = Instance.new("TextLabel", centerFrame)
+percentageLabel.Size = UDim2.new(1, 0, 0, 30)
+percentageLabel.Position = UDim2.new(0, 0, 0, 60)
+percentageLabel.BackgroundTransparency = 1
+percentageLabel.Font = Enum.Font.GothamBold
+percentageLabel.Text = "0.0%"
+percentageLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
+percentageLabel.TextSize = 28
+
+local statusLabel = Instance.new("TextLabel", centerFrame)
+statusLabel.Size = UDim2.new(1, -40, 0, 20)
+statusLabel.Position = UDim2.new(0, 20, 1, -25)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Text = "Loading UI..."
+statusLabel.TextColor3 = Color3.fromRGB(110, 115, 130)
+statusLabel.TextSize = 12
+
+local progressBarBg = Instance.new("Frame", centerFrame)
+progressBarBg.Position = UDim2.new(0, 20, 0, 95)
+progressBarBg.Size = UDim2.new(1, -40, 0, 4)
+progressBarBg.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+progressBarBg.BorderSizePixel = 0
+Instance.new("UICorner", progressBarBg).CornerRadius = UDim.new(0, 2)
+
+local progressBarFill = Instance.new("Frame", progressBarBg)
+progressBarFill.Size = UDim2.new(0, 0, 1, 0)
+progressBarFill.BackgroundColor3 = Color3.fromRGB(90, 130, 255)
+progressBarFill.BorderSizePixel = 0
+Instance.new("UICorner", progressBarFill).CornerRadius = UDim.new(0, 2)
+
+local progressSliderPin = Instance.new("Frame", progressBarFill)
+progressSliderPin.AnchorPoint = Vector2.new(0.5, 0.5)
+progressSliderPin.Position = UDim2.new(1, 0, 0.5, 0)
+progressSliderPin.Size = UDim2.new(0, 10, 0, 10)
+progressSliderPin.BackgroundColor3 = Color3.fromRGB(240, 245, 255)
+progressSliderPin.BorderSizePixel = 0
+Instance.new("UICorner", progressSliderPin).CornerRadius = UDim.new(0, 5)
+
+-- Controlador do encadeamento sequencial da verificação
+local carregamentoConcluido = false
+
+task.spawn(function()
+    local steps = {
+        {0.50, "Loading UI..."},
+        {1.00, "Loading Security..."}
+    }
+    
+    local TS = game:GetService("TweenService")
+    local currentPercent = 0
+    
+    for _, step in ipairs(steps) do
+        statusLabel.Text = step[2]
+        
+        local tween = TS:Create(progressBarFill, TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(step[1], 0, 1, 0)
+        })
+        tween:Play()
+        
+        local targetPercent = step[1] * 100
+        while currentPercent < targetPercent do
+            currentPercent = currentPercent + math.random(2, 5) / 10
+            if currentPercent > targetPercent then currentPercent = targetPercent end
+            percentageLabel.Text = string.format("%.1f%%", currentPercent)
+            task.wait(0.01)
+        end
+        
+        tween.Completed:Wait()
+        task.wait(0.05)
+    end
+    
+    percentageLabel.Text = "100.0%"
+    statusLabel.Text = "Finalizing..."
+    task.wait(0.2)
+    carregamentoConcluido = true
+    loadingGui:Destroy()
+end)
+
+-- ======================================================================================
+-- 3. [VERIFICAÇÃO DA BARRA & EXECUÇÃO DO BANANA CAT HUB ORIGINAL]
+-- ======================================================================================
+task.spawn(function()
+    repeat
+        task.wait(0.05)
+    until carregamentoConcluido == true
+
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/betsejogos-commits/Banana-Cat-Hub/refs/heads/main/BananaCatHub.lua"))()
+    end)
+    
+    if not success then
+        warn("[Banana Loader Error] Falha ao injetar a URL principal: " .. tostring(err))
+    end
+end)
