@@ -1,0 +1,110 @@
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local redeemRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RedeemCode")
+-- Remote padrão de pontos de status do Blox Fruits
+local statsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DataService")
+
+-- Tabela para guardar o histórico de vida dos NPCs para checar o dano rápido
+local npcHealthHistory = {}
+
+local function notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 3.5,
+        Button1 = "OK"
+    })
+end
+
+-- 1. Sequência de Inicialização e Telas de Carregamento
+notify("Status", "Loading UI 🔧📇")
+task.wait(4)
+
+notify("Status", "Loading Security 🛡")
+task.wait(4)
+
+notify("Status", "Redeeming All codes 2x exp 🚀")
+task.wait(2)
+
+-- 2. Resgate Automático dos Códigos
+local codes = {
+    "KITT_RESET", "SUB2GAMERROBOT_RESET1", "Sub2UncleKizaru", "EASTEREXP", 
+    "SUB2GAMERROBOT_EXP1", "Sub2Fer999", "Enyu_is_Pro", "Magicbus", "JCWK", 
+    "Starcodeheo", "Bluxxy", "THEGREATACE", "Sub2OfficialNoobie", 
+    "StrawHatMaine", "Axiore", "Sub2CaptainMaui", "kittgaming", 
+    "SUB2NOOBMASTER123", "Sub2Daigrock", "TantaiGaming"
+}
+
+for _, code in ipairs(codes) do
+    pcall(function()
+        redeemRemote:InvokeServer(code)
+    end)
+    task.wait(0.1)
+end
+
+notify("Status", "Auto Stats & NPC Monitor Active 👁️⚡")
+
+-- 3. Loop de Monitoramento de NPCs e Auto Stats (Sea 1, 2 e 3)
+task.spawn(function()
+    while task.wait(0.1) do
+        -- Procura a pasta de NPCs/Inimigos na Workspace (funciona em todos os Seas)
+        local enemiesFolder = Workspace:FindFirstChild("Enemies") or Workspace
+        
+        for _, npc in ipairs(enemiesFolder:GetChildren()) do
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            
+            if humanoid and humanoid.Health > 0 then
+                local npcId = npc:GetDebugId()
+                local currentHealth = humanoid.Health
+                local maxHealth = humanoid.MaxHealth
+                
+                -- Se já temos um registro desse NPC, calcula a velocidade da perda de vida
+                if npcHealthHistory[npcId] then
+                    local lastHealth = npcHealthHistory[npcId]
+                    local damageTaken = lastHealth - currentHealth
+                    
+                    -- Se o NPC perdeu mais de 8% da vida máxima em 0.1 segundos (Fast Attack detectado)
+                    if damageTaken > (maxHealth * 0.08) then
+                        
+                        -- Verifica os pontos disponíveis na propriedade do jogador
+                        local statsFolder = player:FindFirstChild("Data")
+                        local availablePoints = statsFolder and statsFolder:FindFirstChild("Points")
+                        
+                        if availablePoints and availablePoints.Value > 0 then
+                            local pointsToDistribute = availablePoints.Value
+                            -- Divide metade dos pontos para Soco e metade para Defesa
+                            local halfPoints = math.floor(pointsToDistribute / 2)
+                            
+                            pcall(function()
+                                -- Envia os pontos para o Servidor (padrão do Blox Fruits)
+                                statsRemote:InvokeServer("UpgradeStats", "Melee", halfPoints)
+                                statsRemote:InvokeServer("UpgradeStats", "Defense", halfPoints)
+                            end)
+                        end
+                    end
+                end
+                
+                -- Atualiza o histórico de vida do NPC
+                npcHealthHistory[npcId] = currentHealth
+            end
+        end
+        
+        -- Limpa NPCs mortos ou distantes da memória para evitar lag
+        for id, _ in pairs(npcHealthHistory) do
+            local aindaExiste = false
+            for _, npc in ipairs(enemiesFolder:GetChildren()) do
+                if npc:GetDebugId() == id then
+                    aindaExiste = true
+                    break
+                end
+            end
+            if not aindaExiste then
+                npcHealthHistory[id] = nil
+            end
+        end
+    end
+end)
